@@ -1,0 +1,10 @@
+[package]
+name = "sdio"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tom_timer = { git = "https://github.com/QIUZHILEI/tom_timer.git" }
+tom_device = { git = "https://github.com/QIUZHILEI/tom_device.git", features = ["block"] }
+bitflags = { version = "2", default-features = false }
+log = { version = "0.4", default-features = false }
