@@ -14,8 +14,7 @@ use ops::*;
 use reg::*;
 use sd_reg::*;
 use tom_device::{
-    read_reg, write_reg, BlkDevInfo, BlockDevice, BlockSize, Device, DeviceError, DeviceStatus,
-    DeviceType,
+    read_reg, write_reg, BlockDevice, Device, DeviceError, DeviceStatus, DeviceType, SectorSize,
 };
 use tom_timer::{Delay, Ticker};
 pub struct DwMmcHost {
@@ -28,14 +27,13 @@ pub struct DwMmcHost {
     hard_config: HardConf,
     mmc_opt: MmcOperate,
     delay: Delay,
-    info: DwMMC,
 }
 
 impl DwMmcHost {
     pub const fn new(sdio_base: usize, ticker: &'static dyn Ticker) -> Self {
         let mmc = MmcOperate::new(sdio_base, ticker);
         Self {
-            sdio_base: sdio_base,
+            sdio_base,
             rca: Rca::new(),
             ocr: Ocr::new(),
             cic: Cic::new(),
@@ -44,7 +42,6 @@ impl DwMmcHost {
             hard_config: HardConf(0),
             mmc_opt: mmc,
             delay: Delay::new(ticker),
-            info: DwMMC::new(),
         }
     }
 }
@@ -114,8 +111,12 @@ impl Device for DwMmcHost {
 }
 
 impl BlockDevice for DwMmcHost {
-    fn block_size(&self) -> tom_device::BlockSize {
-        BlockSize::Lb512
+    fn physical_block_size(&self) -> usize {
+        512
+    }
+
+    fn sector_size(&self) -> SectorSize {
+        SectorSize::Lb512
     }
 
     fn read_block(&mut self, lba: usize, buf: &mut [u8]) -> Result<(), DeviceError> {
@@ -125,7 +126,7 @@ impl BlockDevice for DwMmcHost {
             Ok(resp) => {
                 let status = resp.card_status();
                 debug!("{status:?}");
-                let blk_sz = self.block_size() as u32;
+                let blk_sz = self.physical_block_size() as u32;
                 let blk = buf.len() as u32 / blk_sz;
                 match self.mmc_opt.read_data(buf, blk, blk_sz) {
                     Ok(_) => Ok(()),
@@ -150,9 +151,9 @@ impl BlockDevice for DwMmcHost {
             Ok(resp) => {
                 let status = resp.card_status();
                 debug!("{status:?}");
-                let blk_sz = self.block_size() as u32;
+                let blk_sz = self.physical_block_size() as u32;
                 let blk = data.len() as u32 / blk_sz;
-                match self.mmc_opt.write_data(data,blk,blk_sz) {
+                match self.mmc_opt.write_data(data, blk, blk_sz) {
                     Ok(_) => Ok(()),
                     Err(err) => {
                         debug!("{err:?}");
@@ -168,24 +169,4 @@ impl BlockDevice for DwMmcHost {
             }
         }
     }
-
-    fn information(&self) -> &dyn BlkDevInfo {
-        &self.info
-    }
 }
-
-#[allow(unused)]
-#[derive(Debug)]
-pub struct DwMMC {
-    name: [char; 5],
-}
-
-impl DwMMC {
-    const fn new() -> Self {
-        Self {
-            name: ['d', 'w', 'm', 'm', 'c'],
-        }
-    }
-}
-
-impl BlkDevInfo for DwMMC {}
