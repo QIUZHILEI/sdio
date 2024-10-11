@@ -36,16 +36,19 @@ impl Debug for Command {
 
 impl Command {
     fn transfer_cmd(index: u32, resp_ty: ResponseType, addr: u32, write_mode: bool) -> Self {
-        let mut cmd = Command::default();
-        cmd.index = index;
-        cmd.arg = addr;
-        cmd.resp_ty = resp_ty;
-        cmd.reg_flags |= CmdMask::start_cmd.bits()
+        let reg_flags = CmdMask::start_cmd.bits()
             | CmdMask::use_hold_reg.bits()
             | CmdMask::data_expected.bits()
             | CmdMask::wait_prvdata_complete.bits()
             | CmdMask::response_expect.bits()
             | CmdMask::check_response_crc.bits();
+
+        let mut cmd = Command {
+            reg_flags,
+            index,
+            arg: addr,
+            resp_ty,
+        };
         if write_mode {
             cmd.reg_flags |= CmdMask::write.bits();
         }
@@ -53,19 +56,20 @@ impl Command {
     }
 
     fn no_data_cmd_r48(index: u32, resp_ty: ResponseType, arg: u32) -> Self {
-        let mut cmd = Command::default();
-        cmd.index = index;
-        cmd.resp_ty = resp_ty;
-        cmd.arg = arg;
-        cmd.reg_flags |= CmdMask::start_cmd.bits()
+        let reg_flags = CmdMask::start_cmd.bits()
             | CmdMask::use_hold_reg.bits()
             | CmdMask::wait_prvdata_complete.bits()
             | CmdMask::response_expect.bits()
             | CmdMask::check_response_crc.bits();
-        cmd
+        Command {
+            reg_flags,
+            index,
+            arg,
+            resp_ty,
+        }
     }
 
-    pub fn to_cmd(&self) -> u32 {
+    pub fn cmd(&self) -> u32 {
         self.reg_flags | self.index
     }
 

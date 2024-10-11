@@ -70,7 +70,7 @@ impl MmcOperate {
             self.wait_for_data_line()?;
         }
         write_reg(self.sdio_base, REG_CMDARG, cmd.arg());
-        write_reg(self.sdio_base, REG_CMD, cmd.to_cmd());
+        write_reg(self.sdio_base, REG_CMD, cmd.cmd());
         self.wait_for_cmd_done()?;
         let resp = if cmd.resp_exp() {
             let mask: u32 = read_reg(self.sdio_base, REG_RINTSTS);
@@ -148,7 +148,7 @@ impl MmcOperate {
 
     pub fn write_data(&self, buf: &[u8], blk: u32, blk_sz: u32) -> Result<(), CardError> {
         write_reg::<u32>(self.sdio_base, REG_BLKSIZ, blk_sz);
-        write_reg::<u32>(self.sdio_base, REG_BYTCNT, blk_sz * blk);
+        write_reg::<u32>(self.sdio_base, REG_BYTCNT, blk * blk_sz);
         let timer = MillisCountDown::new(DATA_TMOUT_DEFUALT as u64, self.ticker);
         loop {
             let mask = read_reg::<u32>(self.sdio_base, REG_RINTSTS);
@@ -161,8 +161,8 @@ impl MmcOperate {
                 return Err(CardError::DataTransferTimeout);
             }
             if mask & InterruptMask::txdr.bits() != 0 {
-                for offset in 0..((blk * blk_sz) as usize) {
-                    write_reg::<u8>(self.sdio_base, REG_DATA + offset, buf[offset]);
+                for (offset, byte) in buf.iter().enumerate() {
+                    write_reg::<u8>(self.sdio_base, REG_DATA + offset, *byte);
                 }
                 write_reg::<u32>(self.sdio_base, REG_RINTSTS, InterruptMask::txdr.bits());
             }
@@ -181,16 +181,16 @@ impl MmcOperate {
         write_reg::<u32>(self.sdio_base, REG_CLKDIV, div);
         let cmd = up_clk();
         write_reg::<u32>(self.sdio_base, REG_CMDARG, cmd.arg());
-        write_reg::<u32>(self.sdio_base, REG_CMD, cmd.to_cmd());
+        write_reg::<u32>(self.sdio_base, REG_CMD, cmd.cmd());
         if ena == 0 {
             return Ok(());
         }
         self.wait_for_cmd_line()?;
-        write_reg::<u32>(self.sdio_base, REG_CMD, cmd.to_cmd());
+        write_reg::<u32>(self.sdio_base, REG_CMD, cmd.cmd());
         self.wait_for_cmd_line()?;
         write_reg::<u32>(self.sdio_base, REG_CLKENA, ena);
         write_reg::<u32>(self.sdio_base, REG_CMDARG, 0);
-        write_reg::<u32>(self.sdio_base, REG_CMD, cmd.to_cmd());
+        write_reg::<u32>(self.sdio_base, REG_CMD, cmd.cmd());
         debug!("reset clock");
         Ok(())
     }
@@ -283,9 +283,9 @@ impl MmcOperate {
             self.wait_for_cmd_line()?;
             write_reg::<u32>(self.sdio_base, REG_RINTSTS, InterruptMask::all().bits());
             write_reg::<u32>(self.sdio_base, REG_CMDARG, cmd.arg());
-            write_reg::<u32>(self.sdio_base, REG_CMD, cmd.to_cmd());
+            write_reg::<u32>(self.sdio_base, REG_CMD, cmd.cmd());
             if read_reg::<u32>(self.sdio_base, REG_RINTSTS) & InterruptMask::hle.bits() == 0 {
-                debug!("send {:?}", CmdMask::from_bits(cmd.to_cmd()).unwrap());
+                debug!("send {:?}", CmdMask::from_bits(cmd.cmd()).unwrap());
                 break;
             }
         }

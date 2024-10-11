@@ -261,11 +261,11 @@ impl Cid {
     }
 
     pub fn oem_id(&self) -> &str {
-        str::from_utf8(&self.bytes[1..3]).unwrap_or(&"<ERR>")
+        str::from_utf8(&self.bytes[1..3]).unwrap_or("<ERR>")
     }
 
     pub fn product_name(&self) -> &str {
-        str::from_utf8(&self.bytes[3..8]).unwrap_or(&"<ERR>")
+        str::from_utf8(&self.bytes[3..8]).unwrap_or("<ERR>")
     }
 
     pub fn product_revision(&self) -> u8 {
