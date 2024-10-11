@@ -4,7 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-tom_timer = { git = "https://github.com/QIUZHILEI/tom_timer.git" ,branch = "main"}
-tom_device = { git = "https://github.com/QIUZHILEI/tom_device.git", features = ["block"] ,branch = "main"}
+tom_timer = { git = "https://github.com/QIUZHILEI/tom_timer.git", branch = "main" }
+tom_device = { git = "https://github.com/QIUZHILEI/tom_device.git", features = [
+    "block",
+], branch = "main" }
 bitflags = { version = "2", default-features = false }
 log = { version = "0.4", default-features = false }
